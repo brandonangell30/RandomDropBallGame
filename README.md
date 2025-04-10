@@ -1,24 +1,35 @@
-Randomized Ball-dropping Game
-Overview
-This is a client-server implementation developed as a final project for CS 35201.
+# Randomized Ball-dropping Game
 
-Team Members
-Brandon Angell
-Kent Ogasawara
+This is a client-server arcade-style game developed as a final project for CS 35201. 
+Players control a bucket that must catch balls dropping from random points in the sky. 
+The game demonstrates basic real-time networking between a client and server using Python and Pygame.
 
-Game Description
-This game involves a bucket, that has to catch balls dropping from randomized points in the sky.
-Server Side: Displays game, and manages game state
-Client Side: Handels input and communication
+## Team Members
 
-Controls
-Arrow Keys for Movement
+- Brandon Angell  
+- Kent Ogasawara
 
-Requirements
-Python 3.12.3
-Pygame library
-Network connectivity between client and server machines
+## Game Description
 
-Project Structure
-GameClient.py
-GameServer.py
+This project uses a client-server architecture:
+
+- **Server Side**
+  - Displays the game window and visuals
+  - Manages game state (ball positions, bucket location, scoring)
+
+- **Client Side**
+  - Handles user input (arrow keys)
+  - Sends input data to the server
+  - Receives updated game state from the server
+
+## Controls
+
+- Arrow Keys – Move the bucket left, right, up and, down
+
+## Requirements
+
+- Python 3.12.3
+- Pygame library
+- Network connectivity between client and server
+
+
