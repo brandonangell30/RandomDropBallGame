@@ -1,4 +1,4 @@
-#Randomized Ball-dropping Game
+Randomized Ball-dropping Game
 Overview
 This is a client-server implementation developed as a final project for CS 35201.
 
