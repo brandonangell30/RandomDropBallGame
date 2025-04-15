@@ -6,7 +6,7 @@ import sys
 # Server connection details
 server_ip = input("Enter server IP (or press Enter for default): ")
 if not server_ip:
-    server_ip = "127.0.0.1"  # Default to localhost if no IP provided
+    server_ip = "10.22.11.77"  # Default to localhost if no IP provided
     
 port = 5000
 
@@ -44,27 +44,44 @@ def on_press(key):
         return
         
     try:
-        # Movement controls
-        if hasattr(key, 'char') and key.char in ['w', 'a', 's', 'd']:
-            client_socket.send(key.char.encode())
-        
-        # Special keys
+        # Special handling for space key (restart game)
         if key == keyboard.Key.space:
+            print("Sending SPACE command")
             client_socket.send('space'.encode())
+            time.sleep(0.1)  # Small delay to prevent rapid repeat
+            return
             
-    except (AttributeError, socket.error) as e:
-        print(f"Error: {e}")
+        # Handle WASD movement keys
+        if hasattr(key, 'char'):
+            if key.char in ['w', 'a', 's', 'd']:
+                client_socket.send(key.char.encode())
+                time.sleep(0.05)  # Small delay to prevent flooding
+            
+    except Exception as e:
+        print(f"Error sending command: {e}")
         connected = False
 
 def on_release(key):
     """Handle key release events"""
-    if key == keyboard.Key.esc or (hasattr(key, 'char') and key.char == 'q'):
-        print("Disconnecting from server...")
-        try:
-            if client_socket:
+    global client_socket, connected
+    
+    # Handle quit keys (ESC or Q)
+    if key == keyboard.Key.esc:
+        print("ESC pressed - Disconnecting from server...")
+        if client_socket and connected:
+            try:
                 client_socket.close()
-        except:
-            pass
+            except:
+                pass
+        return False  # Stop listener
+        
+    if hasattr(key, 'char') and key.char == 'q':
+        print("Q pressed - Disconnecting from server...")
+        if client_socket and connected:
+            try:
+                client_socket.close()
+            except:
+                pass
         return False  # Stop listener
 
 def main():

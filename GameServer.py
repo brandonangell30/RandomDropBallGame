@@ -116,6 +116,9 @@ def GameThread():
                         if menu_selection == 0:  # Play selected
                             game_state.set_state(GameState.PLAYING)
                             game_state.reset_game()
+                            # Reset object position
+                            object_x = random.randint(0, screen_width - object_width)
+                            object_y = 0
                         else:  # Quit selected
                             running = False
                 
@@ -167,6 +170,9 @@ def GameThread():
                 # Object missed - game over (one life)
                 play_sound(miss_sound)
                 game_state.set_state(GameState.GAME_OVER)
+                # Reset object position for the next game
+                object_x = random.randint(0, screen_width - object_width)
+                object_y = -50  # Start offscreen
             
             # Draw game screen
             screen.fill((154, 200, 255))  # Sky blue background
@@ -249,7 +255,8 @@ def ServerThread():
                         posx += move_speed
                 
                 # Allow client to start/restart the game
-                elif data == 'space':
+                if data == 'space':
+                    print("Space command received")
                     if game_state.get_state() == GameState.MENU:
                         game_state.set_state(GameState.PLAYING)
                         game_state.reset_game()
