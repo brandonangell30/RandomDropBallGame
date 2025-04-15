@@ -12,6 +12,7 @@ posy = 200
 game_state = GameState()
 client_connected = False
 
+
 def play_sound(sound_file):
     """Play a sound effect if the file exists"""
     if os.path.exists(sound_file):
