@@ -6,7 +6,7 @@ import sys
 # Server connection details
 server_ip = input("Enter server IP (or press Enter for default): ")
 if not server_ip:
-    server_ip = "10.22.11.77"  # Default to localhost if no IP provided
+    server_ip = "127.0.0.1"  # Default to localhost if no IP provided
     
 port = 5000
 
