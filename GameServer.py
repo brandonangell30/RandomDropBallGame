@@ -58,6 +58,7 @@ def draw_game_over(screen, screen_width, screen_height, score):
     draw_text(screen, "Press SPACE to play again", 24, screen_width // 2, screen_height - 100)
     draw_text(screen, "Press ESC to quit", 24, screen_width // 2, screen_height - 70)
 
+
 def draw_stats_background(screen, x, y, width, height, color):
     """Draw a semi-transparent background for stats text"""
     # Create a surface with per-pixel alpha
@@ -67,7 +68,39 @@ def draw_stats_background(screen, x, y, width, height, color):
     # Blit the surface onto the screen
     screen.blit(s, (x, y))
 
+def draw_minecraft_text(screen, text, size, x, y, color=(255, 255, 255)):
+    """Draw text using the Minecraft font"""
+    # Check if the Minecraft font is already loaded
+    if not hasattr(draw_minecraft_text, 'minecraft_font'):
+        try:
+            # Try to load the Minecraft font
+            font_path = os.path.join("fonts", "Minecraft.ttf")
+            draw_minecraft_text.minecraft_font = {}
+            pygame.font.init()
+        except Exception as e:
+            print(f"Could not initialize font system: {e}")
+            draw_minecraft_text.minecraft_font = None
     
+    # Try to get or create the font at the requested size
+    if draw_minecraft_text.minecraft_font is not None:
+        if size not in draw_minecraft_text.minecraft_font:
+            try:
+                font_path = os.path.join("fonts", "Minecraft.ttf")
+                draw_minecraft_text.minecraft_font[size] = pygame.font.Font(font_path, size)
+            except Exception as e:
+                print(f"Could not load Minecraft font at size {size}: {e}")
+                # Fall back to system font
+                draw_minecraft_text.minecraft_font[size] = pygame.font.SysFont(None, size)
+        
+        # Create the text surface
+        font = draw_minecraft_text.minecraft_font[size]
+        text_surface = font.render(text, True, color)
+        text_rect = text_surface.get_rect()
+        text_rect.midtop = (x, y)
+        screen.blit(text_surface, text_rect)
+    else:
+        # Fall back to the original draw_text function
+        draw_text(screen, text, size, x, y, color)
 
 def GameThread():
     """Main game thread handling rendering and game logic"""
@@ -128,8 +161,13 @@ def GameThread():
                         if menu_selection == 0:  # Play selected
                             game_state.set_state(GameState.PLAYING)
                             game_state.reset_game()
-                            # Reset ball
+                            # Reset ball and bucket
                             ball.reset()
+                            bucket.x = screen_width // 2 - bucket.width // 2
+                            bucket.y = screen_height - 100
+                            # Also update global position variables
+                            posx = bucket.x
+                            posy = bucket.y
                         else:  # Quit selected
                             running = False
                 
@@ -138,7 +176,13 @@ def GameThread():
                     if event.key == pygame.K_SPACE:
                         game_state.set_state(GameState.PLAYING)
                         game_state.reset_game()
+                        # Reset ball and bucket
                         ball.reset()
+                        bucket.x = screen_width // 2 - bucket.width // 2
+                        bucket.y = screen_height - 100
+                        # Also update global position variables
+                        posx = bucket.x
+                        posy = bucket.y
                     elif event.key == pygame.K_ESCAPE:
                         game_state.set_state(GameState.MENU)
         
@@ -147,15 +191,28 @@ def GameThread():
         
         # Menu state
         if current_state == GameState.MENU:
-            # Minecraft-themed dark blue background
-            screen.fill((14, 23, 48))
+            # Load and display the kitten background
+            try:
+                # Try to load the kitten background if not already loaded
+                if not hasattr(GameThread, 'kitten_bg'):
+                    GameThread.kitten_bg = pygame.image.load("images/minecraft_kitten.png").convert()
+                    GameThread.kitten_bg = pygame.transform.scale(GameThread.kitten_bg, (screen_width, screen_height))
+                # Draw the background
+                screen.blit(GameThread.kitten_bg, (0, 0))
+            except (pygame.error, AttributeError) as e:
+                # Fallback to solid color if image fails to load
+                print(f"Could not load kitten background: {e}")
+                screen.fill((14, 23, 48))
+            
+            # Add a semi-transparent overlay to make text more readable
+            draw_stats_background(screen, 0, 0, screen_width, screen_height, (0, 0, 0, 160))
             
             # Draw game title with Minecraft theme
-            draw_text(screen, "CHICKEN JOCKEY CATCH", 48, screen_width // 2, screen_height // 4, (255, 215, 0))
+            draw_minecraft_text(screen, "CHICKEN JOCKEY CATCH", 36, screen_width // 2, screen_height // 4, (255, 215, 0))
             
             # Draw menu options
-            draw_text(screen, "PLAY", 36, screen_width // 2, screen_height // 2, (255, 255, 255))
-            draw_text(screen, "QUIT", 36, screen_width // 2, screen_height // 2 + 50, (255, 255, 255))
+            draw_minecraft_text(screen, "PLAY", 24, screen_width // 2, screen_height // 2, (255, 255, 255))
+            draw_minecraft_text(screen, "QUIT", 24, screen_width // 2, screen_height // 2 + 50, (255, 255, 255))
             
             # Update the selection indicator position
             pygame.draw.rect(screen, (255, 0, 0), 
@@ -165,10 +222,10 @@ def GameThread():
             # Draw connection status
             status_text = "Client Connected" if client_connected else "Waiting for Client..."
             status_color = (0, 255, 0) if client_connected else (255, 165, 0)
-            draw_text(screen, status_text, 24, screen_width // 2, screen_height - 100, status_color)
+            draw_minecraft_text(screen, status_text, 18, screen_width // 2, screen_height - 100, status_color)
             
             # Draw instructions
-            draw_text(screen, "Press SPACE to start", 20, screen_width // 2, screen_height - 50)
+            draw_minecraft_text(screen, "Press SPACE to start", 16, screen_width // 2, screen_height - 50)
         
         # Playing state
         elif current_state == GameState.PLAYING:
@@ -193,6 +250,8 @@ def GameThread():
                 # Ball missed - game over
                 play_sound(miss_sound)
                 game_state.set_state(GameState.GAME_OVER)
+                # Make sure ball is off-screen for game over state
+                ball.y = screen_height + 100
             
             # Draw game screen with Minecraft forest background
             if background:
@@ -207,27 +266,28 @@ def GameThread():
             
             # Draw difficulty indicator with a semi-transparent background for readability
             draw_stats_background(screen, 10, 5, 130, 30, (0, 0, 0, 128))  # Semi-transparent black background
-            draw_text(screen, f"Level: {game_state.difficulty_level}", 24, 70, 10, (255, 255, 255))
+            draw_minecraft_text(screen, f"Level: {game_state.difficulty_level}", 18, 70, 10, (255, 255, 255))
             
             # Draw score with a semi-transparent background for readability
             draw_stats_background(screen, screen_width - 140, 5, 130, 30, (0, 0, 0, 128))
-            draw_text(screen, f"Score: {game_state.score}", 24, screen_width - 70, 10, (255, 255, 255))
+            draw_minecraft_text(screen, f"Score: {game_state.score}", 18, screen_width - 70, 10, (255, 255, 255))
         
         # Game over state
         elif current_state == GameState.GAME_OVER:
             # Minecraft-themed dark red (nether-like) background
             screen.fill((89, 16, 16))
             
-            draw_text(screen, "GAME OVER", 64, screen_width // 2, screen_height // 4, (255, 255, 0))
-            draw_text(screen, f"SCORE: {game_state.score}", 36, screen_width // 2, screen_height // 2)
-            draw_text(screen, "Press SPACE to play again", 24, screen_width // 2, screen_height - 100)
-            draw_text(screen, "Press ESC to quit", 24, screen_width // 2, screen_height - 70)
+            draw_minecraft_text(screen, "GAME OVER", 48, screen_width // 2, screen_height // 4, (255, 255, 0))
+            draw_minecraft_text(screen, f"SCORE: {game_state.score}", 32, screen_width // 2, screen_height // 2)
+            draw_minecraft_text(screen, "Press SPACE to play again", 20, screen_width // 2, screen_height - 100)
+            draw_minecraft_text(screen, "Press ESC to quit", 20, screen_width // 2, screen_height - 70)
         
         pygame.display.update()
         clock.tick(60)
     
     pygame.quit()
     sys.exit()
+
 
 def ServerThread():
     """Network server thread handling client connections"""
