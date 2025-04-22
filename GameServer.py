@@ -291,7 +291,7 @@ def GameThread():
 
 def ServerThread():
     """Network server thread handling client connections"""
-    global posx, posy, client_connected
+    global posx, posy, game_state, client_connected
     
     # Get server IP
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -311,17 +311,21 @@ def ServerThread():
     print("Server enabled...")
     server_socket.listen(2)
     
+    # Create a bucket instance for movement calculations
+    from bucket import Bucket
+    screen_width, screen_height = 600, 400  # Must match game window size
+    network_bucket = Bucket(screen_width, screen_height)
+    
     while True:
         try:
             conn, address = server_socket.accept()
             print("Connection from: " + str(address))
             client_connected = True
             
-            # Start game when client connects
-            if game_state.get_state() == GameState.MENU:
-                # Don't auto-start game, let player press SPACE
-                pass
-                
+            # Init network bucket with current global positions
+            network_bucket.x = posx
+            network_bucket.y = posy
+            
             while True:
                 data = conn.recv(1024).decode()
                 if not data:
@@ -329,19 +333,24 @@ def ServerThread():
                 
                 print("from connected user: " + str(data))
                 
-                # Calculate movement speed based on difficulty
-                move_speed = 10 * (1 + (game_state.difficulty_level * 0.1))
-                
-                # Only process movement if in playing state
+                # Process movement commands in playing state
                 if game_state.get_state() == GameState.PLAYING:
-                    if data == 'w':
-                        posy -= move_speed
-                    if data == 's':
-                        posy += move_speed
-                    if data == 'a':
-                        posx -= move_speed
-                    if data == 'd':
-                        posx += move_speed
+                    if data in ['w', 'a', 's', 'd']:
+                        # Calculate movement speed based on difficulty
+                        move_speed = 10 * (1 + (game_state.difficulty_level * 0.1))
+                        
+                        if data == 'w':
+                            network_bucket.y -= move_speed
+                        if data == 's':
+                            network_bucket.y += move_speed
+                        if data == 'a':
+                            network_bucket.x -= move_speed
+                        if data == 'd':
+                            network_bucket.x += move_speed
+                            
+                        # Update global position variables
+                        posx = network_bucket.x
+                        posy = network_bucket.y
                 
                 # Allow client to start/restart the game
                 if data == 'space':
@@ -349,9 +358,26 @@ def ServerThread():
                     if game_state.get_state() == GameState.MENU:
                         game_state.set_state(GameState.PLAYING)
                         game_state.reset_game()
+                        # Reset bucket position
+                        network_bucket.x = screen_width // 2 - network_bucket.width // 2
+                        network_bucket.y = screen_height - 100
+                        # Update global position variables
+                        posx = network_bucket.x
+                        posy = network_bucket.y
                     elif game_state.get_state() == GameState.GAME_OVER:
                         game_state.set_state(GameState.PLAYING)
                         game_state.reset_game()
+                        # Reset bucket position
+                        network_bucket.x = screen_width // 2 - network_bucket.width // 2
+                        network_bucket.y = screen_height - 100
+                        # Update global position variables
+                        posx = network_bucket.x
+                        posy = network_bucket.y
+                
+                # Allow client to exit to menu from game over screen
+                if data == 'esc' and game_state.get_state() == GameState.GAME_OVER:
+                    print("Escape command received")
+                    game_state.set_state(GameState.MENU)
             
             client_connected = False
             conn.close()

@@ -50,6 +50,13 @@ def on_press(key):
             client_socket.send('space'.encode())
             time.sleep(0.1)  # Small delay to prevent rapid repeat
             return
+        
+        # Special handling for escape key (exit to menu)
+        if key == keyboard.Key.esc:
+            print("Sending ESC command")
+            client_socket.send('esc'.encode())
+            time.sleep(0.1)  # Small delay to prevent rapid repeat
+            return
             
         # Handle WASD movement keys
         if hasattr(key, 'char'):
