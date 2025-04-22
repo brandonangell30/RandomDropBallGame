@@ -143,6 +143,9 @@ def GameThread():
     # Menu selection
     menu_selection = 0  # 0 = Play, 1 = Quit
     
+    # Track previous state
+    prev_state = game_state.get_state()
+    
     # Main game loop
     running = True
     while running:
@@ -155,17 +158,14 @@ def GameThread():
                 # Menu state
                 if game_state.get_state() == GameState.MENU:
                     if event.key == pygame.K_UP or event.key == pygame.K_DOWN:
-                        # Toggle between Play and Quit
                         menu_selection = 1 - menu_selection
                     elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                         if menu_selection == 0:  # Play selected
                             game_state.set_state(GameState.PLAYING)
                             game_state.reset_game()
-                            # Reset ball and bucket
                             ball.reset()
                             bucket.x = screen_width // 2 - bucket.width // 2
                             bucket.y = screen_height - 100
-                            # Also update global position variables
                             posx = bucket.x
                             posy = bucket.y
                         else:  # Quit selected
@@ -176,11 +176,9 @@ def GameThread():
                     if event.key == pygame.K_SPACE:
                         game_state.set_state(GameState.PLAYING)
                         game_state.reset_game()
-                        # Reset ball and bucket
                         ball.reset()
                         bucket.x = screen_width // 2 - bucket.width // 2
                         bucket.y = screen_height - 100
-                        # Also update global position variables
                         posx = bucket.x
                         posy = bucket.y
                     elif event.key == pygame.K_ESCAPE:
@@ -189,98 +187,102 @@ def GameThread():
         # Get current state
         current_state = game_state.get_state()
         
+        # Check for state transitions - critical for reset synchronization
+        if current_state != prev_state:
+            print(f"Game state changed: {prev_state} → {current_state}")
+            
+            # When entering PLAYING state, always reset
+            if current_state == GameState.PLAYING:
+                print("Resetting ball and bucket positions")
+                ball.reset()
+                bucket.x = screen_width // 2 - bucket.width // 2
+                bucket.y = screen_height - 100
+                posx = bucket.x
+                posy = bucket.y
+        
         # Menu state
         if current_state == GameState.MENU:
-            # Load and display the kitten background
+            # Menu background and UI
             try:
-                # Try to load the kitten background if not already loaded
-                if not hasattr(GameThread, 'kitten_bg'):
-                    GameThread.kitten_bg = pygame.image.load("images/minecraft_kitten.png").convert()
-                    GameThread.kitten_bg = pygame.transform.scale(GameThread.kitten_bg, (screen_width, screen_height))
-                # Draw the background
-                screen.blit(GameThread.kitten_bg, (0, 0))
+                if not hasattr(GameThread, 'menu_bg'):
+                    GameThread.menu_bg = pygame.image.load("images/minecraft_kitten.png").convert()
+                    GameThread.menu_bg = pygame.transform.scale(GameThread.menu_bg, (screen_width, screen_height))
+                screen.blit(GameThread.menu_bg, (0, 0))
             except (pygame.error, AttributeError) as e:
-                # Fallback to solid color if image fails to load
-                print(f"Could not load kitten background: {e}")
+                print(f"Menu background load error: {e}")
                 screen.fill((14, 23, 48))
             
-            # Add a semi-transparent overlay to make text more readable
+            # Overlay for text readability
             draw_stats_background(screen, 0, 0, screen_width, screen_height, (0, 0, 0, 160))
             
-            # Draw game title with Minecraft theme
+            # Menu text
             draw_minecraft_text(screen, "CHICKEN JOCKEY CATCH", 36, screen_width // 2, screen_height // 4, (255, 215, 0))
-            
-            # Draw menu options
             draw_minecraft_text(screen, "PLAY", 24, screen_width // 2, screen_height // 2, (255, 255, 255))
             draw_minecraft_text(screen, "QUIT", 24, screen_width // 2, screen_height // 2 + 50, (255, 255, 255))
             
-            # Update the selection indicator position
+            # Selection indicator
             pygame.draw.rect(screen, (255, 0, 0), 
                            (screen_width // 2 - 60, 
                             screen_height // 2 + (50 * menu_selection), 10, 10))
             
-            # Draw connection status
+            # Connection status
             status_text = "Client Connected" if client_connected else "Waiting for Client..."
             status_color = (0, 255, 0) if client_connected else (255, 165, 0)
             draw_minecraft_text(screen, status_text, 18, screen_width // 2, screen_height - 100, status_color)
-            
-            # Draw instructions
             draw_minecraft_text(screen, "Press SPACE to start", 16, screen_width // 2, screen_height - 50)
         
         # Playing state
         elif current_state == GameState.PLAYING:
-            # Update bucket position from network input (posx, posy are global variables)
+            # Update game objects
             bucket.update(posx, posy)
-            
-            # Update falling ball
             ball.update(game_state)
 
-            # Check if ball is caught
+            # Collision detection
             if bucket.collides_with(ball.get_rect()):
                 game_state.score += 1
                 play_sound(catch_sound)
                 
-                # Every 5 points, increase difficulty
+                # Increase difficulty
                 if game_state.score % 5 == 0:
                     game_state.increase_difficulty()
                 
-                # Reset ball
+                # Reset ball after catch
                 ball.reset()
             elif ball.is_off_screen():
-                # Ball missed - game over
+                # Game over when ball is missed
                 play_sound(miss_sound)
                 game_state.set_state(GameState.GAME_OVER)
-                # Make sure ball is off-screen for game over state
-                ball.y = screen_height + 100
+                ball.y = screen_height + 100  # Ensure ball is off-screen
             
-            # Draw game screen with Minecraft forest background
+            # Draw game world
             if background:
                 screen.blit(background, (0, 0))
             else:
-                # Fallback to solid color if background image fails to load
                 screen.fill((115, 185, 255))
             
-            # Draw bucket and ball
+            # Draw game objects
             bucket.draw(screen)
             ball.draw(screen)
             
-            # Draw difficulty indicator with a semi-transparent background for readability
-            draw_stats_background(screen, 10, 5, 130, 30, (0, 0, 0, 128))  # Semi-transparent black background
+            # Draw UI elements
+            draw_stats_background(screen, 10, 5, 130, 30, (0, 0, 0, 128))
             draw_minecraft_text(screen, f"Level: {game_state.difficulty_level}", 18, 70, 10, (255, 255, 255))
             
-            # Draw score with a semi-transparent background for readability
             draw_stats_background(screen, screen_width - 140, 5, 130, 30, (0, 0, 0, 128))
             draw_minecraft_text(screen, f"Score: {game_state.score}", 18, screen_width - 70, 10, (255, 255, 255))
         
         # Game over state
         elif current_state == GameState.GAME_OVER:
-            # Minecraft-themed dark red (nether-like) background
+            # Game over screen
             screen.fill((89, 16, 16))
             
             draw_minecraft_text(screen, "GAME OVER", 48, screen_width // 2, screen_height // 4, (255, 255, 0))
             draw_minecraft_text(screen, f"SCORE: {game_state.score}", 32, screen_width // 2, screen_height // 2)
             draw_minecraft_text(screen, "Press SPACE to play again", 20, screen_width // 2, screen_height - 100)
             draw_minecraft_text(screen, "Press ESC to quit", 20, screen_width // 2, screen_height - 70)
+        
+        # Store previous state for next frame
+        prev_state = current_state
         
         pygame.display.update()
         clock.tick(60)
@@ -311,10 +313,9 @@ def ServerThread():
     print("Server enabled...")
     server_socket.listen(2)
     
-    # Create a bucket instance for movement calculations
-    from bucket import Bucket
-    screen_width, screen_height = 600, 400  # Must match game window size
-    network_bucket = Bucket(screen_width, screen_height)
+    # Set dimensions for screen boundaries
+    screen_width, screen_height = 600, 400
+    bucket_width, bucket_height = 80, 80
     
     while True:
         try:
@@ -322,62 +323,44 @@ def ServerThread():
             print("Connection from: " + str(address))
             client_connected = True
             
-            # Init network bucket with current global positions
-            network_bucket.x = posx
-            network_bucket.y = posy
-            
             while True:
                 data = conn.recv(1024).decode()
                 if not data:
                     break
                 
-                print("from connected user: " + str(data))
+                print(f"Command received: {data} | Current state: {game_state.get_state()}")
                 
-                # Process movement commands in playing state
+                # Handle movement commands
                 if game_state.get_state() == GameState.PLAYING:
-                    if data in ['w', 'a', 's', 'd']:
-                        # Calculate movement speed based on difficulty
-                        move_speed = 10 * (1 + (game_state.difficulty_level * 0.1))
-                        
-                        if data == 'w':
-                            network_bucket.y -= move_speed
-                        if data == 's':
-                            network_bucket.y += move_speed
-                        if data == 'a':
-                            network_bucket.x -= move_speed
-                        if data == 'd':
-                            network_bucket.x += move_speed
-                            
-                        # Update global position variables
-                        posx = network_bucket.x
-                        posy = network_bucket.y
+                    # Calculate movement speed based on difficulty
+                    move_speed = 10 * (1 + (game_state.difficulty_level * 0.1))
+                    
+                    if data == 'a':
+                        posx -= move_speed
+                        if posx < 0:
+                            posx = 0
+                    if data == 'd':
+                        posx += move_speed
+                        if posx > screen_width - bucket_width:
+                            posx = screen_width - bucket_width
                 
-                # Allow client to start/restart the game
+                # Handle game control commands
                 if data == 'space':
-                    print("Space command received")
-                    if game_state.get_state() == GameState.MENU:
+                    print(f"SPACE command received in state {game_state.get_state()}")
+                    
+                    # Direct state changes based on current state
+                    if game_state.get_state() == GameState.MENU or game_state.get_state() == GameState.GAME_OVER:
+                        # Reset everything in one place
                         game_state.set_state(GameState.PLAYING)
                         game_state.reset_game()
-                        # Reset bucket position
-                        network_bucket.x = screen_width // 2 - network_bucket.width // 2
-                        network_bucket.y = screen_height - 100
-                        # Update global position variables
-                        posx = network_bucket.x
-                        posy = network_bucket.y
-                    elif game_state.get_state() == GameState.GAME_OVER:
-                        game_state.set_state(GameState.PLAYING)
-                        game_state.reset_game()
-                        # Reset bucket position
-                        network_bucket.x = screen_width // 2 - network_bucket.width // 2
-                        network_bucket.y = screen_height - 100
-                        # Update global position variables
-                        posx = network_bucket.x
-                        posy = network_bucket.y
-                
-                # Allow client to exit to menu from game over screen
-                if data == 'esc' and game_state.get_state() == GameState.GAME_OVER:
-                    print("Escape command received")
+                        # Reset position
+                        posx = (screen_width - bucket_width) // 2
+                        posy = screen_height - 100
+                        print(f"Game started/restarted via client command")
+                        
+                elif data == 'esc' and game_state.get_state() == GameState.GAME_OVER:
                     game_state.set_state(GameState.MENU)
+                    print("Returned to menu via client command")
             
             client_connected = False
             conn.close()
