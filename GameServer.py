@@ -58,6 +58,17 @@ def draw_game_over(screen, screen_width, screen_height, score):
     draw_text(screen, "Press SPACE to play again", 24, screen_width // 2, screen_height - 100)
     draw_text(screen, "Press ESC to quit", 24, screen_width // 2, screen_height - 70)
 
+def draw_stats_background(screen, x, y, width, height, color):
+    """Draw a semi-transparent background for stats text"""
+    # Create a surface with per-pixel alpha
+    s = pygame.Surface((width, height), pygame.SRCALPHA)
+    # Fill with the given color and alpha
+    s.fill(color)
+    # Blit the surface onto the screen
+    screen.blit(s, (x, y))
+
+    
+
 def GameThread():
     """Main game thread handling rendering and game logic"""
     pygame.init()
@@ -65,34 +76,34 @@ def GameThread():
     
     screen_width, screen_height = 600, 400
     screen = pygame.display.set_mode((screen_width, screen_height))
-    pygame.display.set_caption("Bucket Catch Game")
+    pygame.display.set_caption("Minecraft Chicken Jockey Catch")
 
     clock = pygame.time.Clock()
 
     # Get global variables
     global posx, posy, game_state, client_connected
     
+    # Import custom classes
+    from ball import Ball
+    from bucket import Bucket
+    
+    # Create game objects with custom Minecraft images
+    ball = Ball(screen_width, screen_height, "images/chicken_jockey.png", width=40, height=60)
+    bucket = Bucket(screen_width, screen_height, "images/lava_bucket.png", width=80, height=80)
+    
+    # Load background image
+    background = None
+    try:
+        background = pygame.image.load("images/minecraft_forest.png").convert()
+        background = pygame.transform.scale(background, (screen_width, screen_height))
+    except pygame.error as e:
+        print(f"Could not load background image: {e}")
+    
     # Set initial position
-    posx = screen_width // 2 - 40  # Center the bucket
-    posy = screen_height - 40  # Fixed bucket Y position
-
-    # Game objects
-    bucket_width = 80
-    bucket_height = 20
-    bucket_color = (0, 51, 204)
-    bucket_outline_color = (0, 0, 255)
-
-    object_width = 20
-    object_height = 20
-    object_color = (255, 0, 0)
+    posx = bucket.x
+    posy = bucket.y
     
-    base_object_speed = 3
-    object_speed = base_object_speed
-    
-    object_x = random.randint(0, screen_width - object_width)
-    object_y = 0
-    
-    # Load sound effects (these files would need to be created or downloaded)
+    # Load sound effects
     catch_sound = "sounds/catch.wav"
     miss_sound = "sounds/miss.wav"
     
@@ -117,9 +128,8 @@ def GameThread():
                         if menu_selection == 0:  # Play selected
                             game_state.set_state(GameState.PLAYING)
                             game_state.reset_game()
-                            # Reset object position
-                            object_x = random.randint(0, screen_width - object_width)
-                            object_y = 0
+                            # Reset ball
+                            ball.reset()
                         else:  # Quit selected
                             running = False
                 
@@ -128,8 +138,7 @@ def GameThread():
                     if event.key == pygame.K_SPACE:
                         game_state.set_state(GameState.PLAYING)
                         game_state.reset_game()
-                        object_y = 0
-                        object_x = random.randint(0, screen_width - object_width)
+                        ball.reset()
                     elif event.key == pygame.K_ESCAPE:
                         game_state.set_state(GameState.MENU)
         
@@ -138,25 +147,39 @@ def GameThread():
         
         # Menu state
         if current_state == GameState.MENU:
-            draw_menu(screen, screen_width, screen_height)
+            # Minecraft-themed dark blue background
+            screen.fill((14, 23, 48))
+            
+            # Draw game title with Minecraft theme
+            draw_text(screen, "CHICKEN JOCKEY CATCH", 48, screen_width // 2, screen_height // 4, (255, 215, 0))
+            
+            # Draw menu options
+            draw_text(screen, "PLAY", 36, screen_width // 2, screen_height // 2, (255, 255, 255))
+            draw_text(screen, "QUIT", 36, screen_width // 2, screen_height // 2 + 50, (255, 255, 255))
+            
             # Update the selection indicator position
             pygame.draw.rect(screen, (255, 0, 0), 
-                            (screen_width // 2 - 60, 
-                             screen_height // 2 + (50 * menu_selection), 10, 10))
+                           (screen_width // 2 - 60, 
+                            screen_height // 2 + (50 * menu_selection), 10, 10))
+            
+            # Draw connection status
+            status_text = "Client Connected" if client_connected else "Waiting for Client..."
+            status_color = (0, 255, 0) if client_connected else (255, 165, 0)
+            draw_text(screen, status_text, 24, screen_width // 2, screen_height - 100, status_color)
+            
+            # Draw instructions
+            draw_text(screen, "Press SPACE to start", 20, screen_width // 2, screen_height - 50)
         
         # Playing state
         elif current_state == GameState.PLAYING:
-            # Calculate current object speed based on difficulty
-            object_speed = game_state.calculate_speed(base_object_speed)
+            # Update bucket position from network input (posx, posy are global variables)
+            bucket.update(posx, posy)
             
-            # Update falling object position
-            object_y += object_speed
+            # Update falling ball
+            ball.update(game_state)
 
-            # Check if object is caught
-            bucket_rect = pygame.Rect(posx, posy, bucket_width, bucket_height)
-            object_rect = pygame.Rect(object_x, object_y, object_width, object_height)
-
-            if bucket_rect.colliderect(object_rect):
+            # Check if ball is caught
+            if bucket.collides_with(ball.get_rect()):
                 game_state.score += 1
                 play_sound(catch_sound)
                 
@@ -164,36 +187,41 @@ def GameThread():
                 if game_state.score % 5 == 0:
                     game_state.increase_difficulty()
                 
-                # Reset object
-                object_x = random.randint(0, screen_width - object_width)
-                object_y = 0
-            elif object_y > screen_height:
-                # Object missed - game over (one life)
+                # Reset ball
+                ball.reset()
+            elif ball.is_off_screen():
+                # Ball missed - game over
                 play_sound(miss_sound)
                 game_state.set_state(GameState.GAME_OVER)
-                # Reset object position for the next game
-                object_x = random.randint(0, screen_width - object_width)
-                object_y = -50  # Start offscreen
             
-            # Draw game screen
-            screen.fill((154, 200, 255))  # Sky blue background
+            # Draw game screen with Minecraft forest background
+            if background:
+                screen.blit(background, (0, 0))
+            else:
+                # Fallback to solid color if background image fails to load
+                screen.fill((115, 185, 255))
             
-            # Draw bucket with outline
-            pygame.draw.rect(screen, bucket_color, bucket_rect)
-            pygame.draw.rect(screen, bucket_outline_color, bucket_rect, 2)  # 2px outline
-
-            # Draw falling object
-            pygame.draw.rect(screen, object_color, object_rect)
+            # Draw bucket and ball
+            bucket.draw(screen)
+            ball.draw(screen)
             
-            # Draw difficulty indicator
-            draw_text(screen, f"Level: {game_state.difficulty_level}", 24, screen_width - 70, 10, (0, 0, 0))
+            # Draw difficulty indicator with a semi-transparent background for readability
+            draw_stats_background(screen, 10, 5, 130, 30, (0, 0, 0, 128))  # Semi-transparent black background
+            draw_text(screen, f"Level: {game_state.difficulty_level}", 24, 70, 10, (255, 255, 255))
             
-            # Draw score
-            draw_text(screen, f"Score: {game_state.score}", 24, 70, 10, (0, 0, 0))
+            # Draw score with a semi-transparent background for readability
+            draw_stats_background(screen, screen_width - 140, 5, 130, 30, (0, 0, 0, 128))
+            draw_text(screen, f"Score: {game_state.score}", 24, screen_width - 70, 10, (255, 255, 255))
         
         # Game over state
         elif current_state == GameState.GAME_OVER:
-            draw_game_over(screen, screen_width, screen_height, game_state.score)
+            # Minecraft-themed dark red (nether-like) background
+            screen.fill((89, 16, 16))
+            
+            draw_text(screen, "GAME OVER", 64, screen_width // 2, screen_height // 4, (255, 255, 0))
+            draw_text(screen, f"SCORE: {game_state.score}", 36, screen_width // 2, screen_height // 2)
+            draw_text(screen, "Press SPACE to play again", 24, screen_width // 2, screen_height - 100)
+            draw_text(screen, "Press ESC to quit", 24, screen_width // 2, screen_height - 70)
         
         pygame.display.update()
         clock.tick(60)
