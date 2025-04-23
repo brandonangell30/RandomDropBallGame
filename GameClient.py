@@ -10,12 +10,12 @@ if not server_ip:
     
 port = 5000
 
-# Initialize connection status
+
 connected = False
 client_socket = None
 
 def connect_to_server():
-    """Attempt to connect to the game server"""
+    
     global connected, client_socket
     
     try:
@@ -35,7 +35,7 @@ def connect_to_server():
         return False
 
 def on_press(key):
-    """Handle key press events"""
+    
     global connected, client_socket
     
     if not connected:
@@ -44,32 +44,32 @@ def on_press(key):
         return
         
     try:
-        # Special handling for space key (restart game)
+        
         if key == keyboard.Key.space:
             print("Sending SPACE command")
             client_socket.send('space'.encode())
             time.sleep(0.1)  # Small delay to prevent rapid repeat
             return
         
-        # Special handling for escape key (exit to menu)
+        
         if key == keyboard.Key.esc:
             print("Sending ESC command")
             client_socket.send('esc'.encode())
-            time.sleep(0.1)  # Small delay to prevent rapid repeat
+            time.sleep(0.1)  
             return
             
         # Handle WASD movement keys
         if hasattr(key, 'char'):
             if key.char in ['w', 'a', 's', 'd']:
                 client_socket.send(key.char.encode())
-                time.sleep(0.05)  # Small delay to prevent flooding
+                time.sleep(0.05)  
             
     except Exception as e:
         print(f"Error sending command: {e}")
         connected = False
 
 def on_release(key):
-    """Handle key release events"""
+   
     global client_socket, connected
     
     # Handle quit keys (ESC or Q)
@@ -80,7 +80,7 @@ def on_release(key):
                 client_socket.close()
             except:
                 pass
-        return False  # Stop listener
+        return False  
         
     if hasattr(key, 'char') and key.char == 'q':
         print("Q pressed - Disconnecting from server...")
@@ -89,24 +89,24 @@ def on_release(key):
                 client_socket.close()
             except:
                 pass
-        return False  # Stop listener
+        return False  
 
 def main():
-    """Main function to run the client"""
+    
     global connected
     
     print("Bucket Catch Game - Client")
     print("==========================")
     print(f"Connecting to server at {server_ip}:{port}...")
     
-    # Initial connection attempt
+    
     connected = connect_to_server()
     
     if not connected:
         print("Failed to connect. Make sure the server is running.")
         print("Press any key to retry or ESC to quit.")
     
-    # Start keyboard listener
+    
     with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
         listener.join()
 

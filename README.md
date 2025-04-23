@@ -24,7 +24,7 @@ This project uses a client-server architecture:
 
 ## Controls
 
-- Arrow Keys – Move the bucket left, right, up and, down
+- WASD – Move the bucket left, right, up and, down
 
 ## Requirements
 

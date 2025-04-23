@@ -15,13 +15,13 @@ client_connected = False
 
 
 def play_sound(sound_file):
-    """Play a sound effect if the file exists"""
+    
     if os.path.exists(sound_file):
         sound = pygame.mixer.Sound(sound_file)
         sound.play()
 
 def draw_text(screen, text, size, x, y, color=(255, 255, 255)):
-    """Helper function to draw text on screen"""
+    
     font = pygame.font.SysFont(None, size)
     text_surface = font.render(text, True, color)
     text_rect = text_surface.get_rect()
@@ -29,8 +29,8 @@ def draw_text(screen, text, size, x, y, color=(255, 255, 255)):
     screen.blit(text_surface, text_rect)
 
 def draw_menu(screen, screen_width, screen_height):
-    """Draw the game menu"""
-    screen.fill((0, 0, 50))  # Dark blue background
+    
+    screen.fill((0, 0, 50))  
     
     # Draw game title
     draw_text(screen, "BUCKET CATCH", 64, screen_width // 2, screen_height // 4, (255, 255, 0))
@@ -39,7 +39,7 @@ def draw_menu(screen, screen_width, screen_height):
     draw_text(screen, "PLAY", 36, screen_width // 2, screen_height // 2, (255, 255, 255))
     draw_text(screen, "QUIT", 36, screen_width // 2, screen_height // 2 + 50, (255, 255, 255))
     
-    # Draw selection indicator (will later be made interactive)
+    
     pygame.draw.rect(screen, (255, 0, 0), (screen_width // 2 - 60, screen_height // 2, 10, 10))
     
     # Draw connection status
@@ -47,12 +47,12 @@ def draw_menu(screen, screen_width, screen_height):
     status_color = (0, 255, 0) if client_connected else (255, 165, 0)
     draw_text(screen, status_text, 24, screen_width // 2, screen_height - 100, status_color)
     
-    # Draw instructions
+    
     draw_text(screen, "Press SPACE to start", 20, screen_width // 2, screen_height - 50)
 
 def draw_game_over(screen, screen_width, screen_height, score):
-    """Draw the game over screen"""
-    screen.fill((50, 0, 0))  # Dark red background
+    
+    screen.fill((50, 0, 0))  
     
     draw_text(screen, "GAME OVER", 64, screen_width // 2, screen_height // 4, (255, 255, 0))
     draw_text(screen, f"SCORE: {score}", 36, screen_width // 2, screen_height // 2)
@@ -61,20 +61,19 @@ def draw_game_over(screen, screen_width, screen_height, score):
 
 
 def draw_stats_background(screen, x, y, width, height, color):
-    """Draw a semi-transparent background for stats text"""
-    # Create a surface with per-pixel alpha
+   
     s = pygame.Surface((width, height), pygame.SRCALPHA)
-    # Fill with the given color and alpha
+   
     s.fill(color)
-    # Blit the surface onto the screen
+    
     screen.blit(s, (x, y))
 
 def draw_minecraft_text(screen, text, size, x, y, color=(255, 255, 255)):
-    """Draw text using the Minecraft font"""
+   
     # Check if the Minecraft font is already loaded
     if not hasattr(draw_minecraft_text, 'minecraft_font'):
         try:
-            # Try to load the Minecraft font
+            
             font_path = os.path.join("fonts", "Minecraft.ttf")
             draw_minecraft_text.minecraft_font = {}
             pygame.font.init()
@@ -82,7 +81,7 @@ def draw_minecraft_text(screen, text, size, x, y, color=(255, 255, 255)):
             print(f"Could not initialize font system: {e}")
             draw_minecraft_text.minecraft_font = None
     
-    # Try to get or create the font at the requested size
+   
     if draw_minecraft_text.minecraft_font is not None:
         if size not in draw_minecraft_text.minecraft_font:
             try:
@@ -90,21 +89,21 @@ def draw_minecraft_text(screen, text, size, x, y, color=(255, 255, 255)):
                 draw_minecraft_text.minecraft_font[size] = pygame.font.Font(font_path, size)
             except Exception as e:
                 print(f"Could not load Minecraft font at size {size}: {e}")
-                # Fall back to system font
+               
                 draw_minecraft_text.minecraft_font[size] = pygame.font.SysFont(None, size)
         
-        # Create the text surface
+        
         font = draw_minecraft_text.minecraft_font[size]
         text_surface = font.render(text, True, color)
         text_rect = text_surface.get_rect()
         text_rect.midtop = (x, y)
         screen.blit(text_surface, text_rect)
     else:
-        # Fall back to the original draw_text function
+        
         draw_text(screen, text, size, x, y, color)
 
 def play_background_music(music_file):
-    """Play background music in a loop"""
+    
     try:
         if os.path.exists(music_file):
             pygame.mixer.music.load(music_file)
@@ -118,7 +117,7 @@ def play_background_music(music_file):
 
 
 def GameThread():
-    """Main game thread handling rendering and game logic"""
+    
     pygame.init()
     pygame.mixer.init()  # Initialize sound mixer
     
@@ -133,11 +132,11 @@ def GameThread():
     # Get global variables
     global posx, posy, game_state, client_connected
     
-    # Import custom classes
+    
     from ball import Ball
     from bucket import Bucket
     
-    # Create game objects with custom Minecraft images
+
     ball = Ball(screen_width, screen_height, "images/chicken_jockey.png", width=40, height=60)
     bucket = Bucket(screen_width, screen_height, "images/lava_bucket.png", width=80, height=80)
     
@@ -149,7 +148,7 @@ def GameThread():
     except pygame.error as e:
         print(f"Could not load background image: {e}")
     
-    # Difficulty message variables
+    
     show_difficulty_message = False
     difficulty_message_timer = 0
     difficulty_message_duration = 180  # Show for 3 seconds
@@ -171,7 +170,7 @@ def GameThread():
     # Main game loop
     running = True
     while running:
-        # Handle events
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -182,7 +181,7 @@ def GameThread():
                     if event.key == pygame.K_UP or event.key == pygame.K_DOWN:
                         menu_selection = 1 - menu_selection
                     elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
-                        if menu_selection == 0:  # Play selected
+                        if menu_selection == 0:  
                             game_state.set_state(GameState.PLAYING)
                             game_state.reset_game()
                             ball.reset()
@@ -190,7 +189,7 @@ def GameThread():
                             bucket.y = screen_height - 100
                             posx = bucket.x
                             posy = bucket.y
-                        else:  # Quit selected
+                        else:  # Quit 
                             running = False
                 
                 # Game over state
@@ -206,10 +205,10 @@ def GameThread():
                     elif event.key == pygame.K_ESCAPE:
                         game_state.set_state(GameState.MENU)
         
-        # Get current state
+       
         current_state = game_state.get_state()
         
-        # Check for state transitions - critical for reset synchronization
+        
         if current_state != prev_state:
             print(f"Game state changed: {prev_state} → {current_state}")
             
@@ -224,7 +223,7 @@ def GameThread():
         
         # Menu state
         if current_state == GameState.MENU:
-            # Menu background and UI
+            
             try:
                 if not hasattr(GameThread, 'menu_bg'):
                     GameThread.menu_bg = pygame.image.load("images/minecraft_kitten.png").convert()
@@ -234,7 +233,7 @@ def GameThread():
                 print(f"Menu background load error: {e}")
                 screen.fill((14, 23, 48))
             
-            # Overlay for text readability
+            
             draw_stats_background(screen, 0, 0, screen_width, screen_height, (0, 0, 0, 160))
             
             # Menu text
@@ -242,12 +241,12 @@ def GameThread():
             draw_minecraft_text(screen, "PLAY", 24, screen_width // 2, screen_height // 2, (255, 255, 255))
             draw_minecraft_text(screen, "QUIT", 24, screen_width // 2, screen_height // 2 + 50, (255, 255, 255))
             
-            # Selection indicator
+            
             pygame.draw.rect(screen, (255, 0, 0), 
                            (screen_width // 2 - 60, 
                             screen_height // 2 + (50 * menu_selection), 10, 10))
             
-            # Connection status
+            
             status_text = "Client Connected" if client_connected else "Waiting for Client..."
             status_color = (0, 255, 0) if client_connected else (255, 165, 0)
             draw_minecraft_text(screen, status_text, 18, screen_width // 2, screen_height - 100, status_color)
@@ -255,11 +254,11 @@ def GameThread():
         
         # Playing state
         elif current_state == GameState.PLAYING:
-            # Update game objects
+            
             bucket.update(posx, posy)
             ball.update(game_state)
 
-            # Collision detection
+            
             if bucket.collides_with(ball.get_rect()):
                 game_state.score += 1
                 play_sound(catch_sound)
@@ -278,13 +277,13 @@ def GameThread():
                 game_state.set_state(GameState.GAME_OVER)
                 ball.y = screen_height + 100  # Ensure ball is off-screen
             
-            # Draw game world
+            # Draw game 
             if background:
                 screen.blit(background, (0, 0))
             else:
                 screen.fill((115, 185, 255))
             
-            # Show difficulty message if active
+            
             if show_difficulty_message:
                 # Draw message background
                 draw_stats_background(screen, screen_width // 2 - 200, 40, 400, 40, (0, 0, 0, 180))
@@ -319,7 +318,7 @@ def GameThread():
             draw_minecraft_text(screen, "Press SPACE to play again", 20, screen_width // 2, screen_height - 100)
             draw_minecraft_text(screen, "Press ESC to quit", 20, screen_width // 2, screen_height - 70)
         
-        # Store previous state for next frame
+        
         prev_state = current_state
         
         pygame.display.update()
@@ -329,7 +328,7 @@ def GameThread():
     sys.exit()
 
 def ServerThread():
-    """Network server thread handling client connections"""
+   
     global posx, posy, game_state, client_connected
     
     # Get server IP
@@ -350,7 +349,7 @@ def ServerThread():
     print("Server enabled...")
     server_socket.listen(2)
     
-    # Set dimensions for screen boundaries
+  
     screen_width, screen_height = 600, 400
     bucket_width, bucket_height = 80, 80
     
@@ -369,7 +368,7 @@ def ServerThread():
                 
                 # Handle movement commands
                 if game_state.get_state() == GameState.PLAYING:
-                    # Calculate movement speed based on difficulty
+                   
                     move_speed = 10 * (1 + (game_state.difficulty_level * 0.1))
                     
                     if data == 'a':
@@ -385,12 +384,12 @@ def ServerThread():
                 if data == 'space':
                     print(f"SPACE command received in state {game_state.get_state()}")
                     
-                    # Direct state changes based on current state
+                    
                     if game_state.get_state() == GameState.MENU or game_state.get_state() == GameState.GAME_OVER:
-                        # Reset everything in one place
+                        
                         game_state.set_state(GameState.PLAYING)
                         game_state.reset_game()
-                        # Reset position
+                        
                         posx = (screen_width - bucket_width) // 2
                         posy = screen_height - 100
                         print(f"Game started/restarted via client command")
@@ -406,7 +405,6 @@ def ServerThread():
             client_connected = False
 
 if __name__ == "__main__":
-    # Create sounds directory if it doesn't exist
     if not os.path.exists("sounds"):
         os.makedirs("sounds")
         print("Created sounds directory. Please add sound files.")
