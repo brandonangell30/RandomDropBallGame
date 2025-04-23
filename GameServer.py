@@ -5,6 +5,7 @@ import sys
 import random
 import os
 from game_state import GameState
+import pygame.mixer
 
 # Initialize global variables
 posx = 300
@@ -102,6 +103,20 @@ def draw_minecraft_text(screen, text, size, x, y, color=(255, 255, 255)):
         # Fall back to the original draw_text function
         draw_text(screen, text, size, x, y, color)
 
+def play_background_music(music_file):
+    """Play background music in a loop"""
+    try:
+        if os.path.exists(music_file):
+            pygame.mixer.music.load(music_file)
+            pygame.mixer.music.set_volume(0.4)  # Set volume to 40%
+            pygame.mixer.music.play(-1)  # -1 means loop indefinitely
+            print(f"Playing background music: {music_file}")
+        else:
+            print(f"Music file not found: {music_file}")
+    except pygame.error as e:
+        print(f"Could not play background music: {e}")
+
+
 def GameThread():
     """Main game thread handling rendering and game logic"""
     pygame.init()
@@ -112,6 +127,8 @@ def GameThread():
     pygame.display.set_caption("Minecraft Chicken Jockey Catch")
 
     clock = pygame.time.Clock()
+    
+    play_background_music("music/Mall.mp3")
 
     # Get global variables
     global posx, posy, game_state, client_connected
