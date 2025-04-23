@@ -149,6 +149,11 @@ def GameThread():
     except pygame.error as e:
         print(f"Could not load background image: {e}")
     
+    # Difficulty message variables
+    show_difficulty_message = False
+    difficulty_message_timer = 0
+    difficulty_message_duration = 180  # Show for 3 seconds
+    
     # Set initial position
     posx = bucket.x
     posy = bucket.y
@@ -262,6 +267,8 @@ def GameThread():
                 # Increase difficulty
                 if game_state.score % 5 == 0:
                     game_state.increase_difficulty()
+                    show_difficulty_message = True
+                    difficulty_message_timer = difficulty_message_duration
                 
                 # Reset ball after catch
                 ball.reset()
@@ -276,6 +283,20 @@ def GameThread():
                 screen.blit(background, (0, 0))
             else:
                 screen.fill((115, 185, 255))
+            
+            # Show difficulty message if active
+            if show_difficulty_message:
+                # Draw message background
+                draw_stats_background(screen, screen_width // 2 - 200, 40, 400, 40, (0, 0, 0, 180))
+                
+                # Draw message text
+                draw_minecraft_text(screen, "Difficulty increases every 5 balls!", 18, 
+                                  screen_width // 2, 50, (255, 255, 0))
+                
+                # Decrement timer
+                difficulty_message_timer -= 1
+                if difficulty_message_timer <= 0:
+                    show_difficulty_message = False
             
             # Draw game objects
             bucket.draw(screen)
@@ -306,7 +327,6 @@ def GameThread():
     
     pygame.quit()
     sys.exit()
-
 
 def ServerThread():
     """Network server thread handling client connections"""
