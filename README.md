@@ -18,13 +18,13 @@ This project uses a client-server architecture:
   - Manages game state (ball positions, bucket location, scoring)
 
 - **Client Side**
-  - Handles user input (arrow keys)
+  - Handles user input (WASD)
   - Sends input data to the server
   - Receives updated game state from the server
 
 ## Controls
 
-- WASD – Move the bucket left, right, up and, down
+- WASD – Move the bucket left, right, up and down
 
 ## Requirements
 
